@@ -35,6 +35,6 @@ resources:
   bugtracker: https://github.com/yappo/p5-Amon2-Plugin-L10N/issues
   homepage: https://github.com/yappo/p5-Amon2-Plugin-L10N
   repository: https://github.com/yappo/p5-Amon2-Plugin-L10N.git
-version: v0.1.0
+version: v0.1.1
 x_contributors:
   - 'Kazuhiro Osawa <yappo@shibuya.pl>'
