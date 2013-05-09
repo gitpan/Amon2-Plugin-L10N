@@ -1,10 +1,28 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 use strict;
 use warnings;
-use utf8;
 use Locale::Maketext::Extract;
 use Locale::Maketext::Extract::Plugin::Xslate;
 use File::Find::Rule;
+use File::Spec;
+use Getopt::Long;
+use Pod::Usage;
+
+GetOptions(
+    'help'     => \my $help,
+    'po-dir=s' => \my $po_dir,
+    'version'  => \my $version,
+) or pod2usage(1);
+
+if ($version) {
+    require Amon2::Plugin::L10N;
+    print "Amon2::Plugin::L10N: $Amon2::Plugin::L10N::VERSION\n";
+    exit(0);
+}
+pod2usage(0) if $help;
+
+@ARGV or pod2usage(1);
+$po_dir ||= 'po';
 
 my $extract = Locale::Maketext::Extract->new(
     plugins  => {
@@ -33,9 +51,10 @@ msgstr ""
 POT
 );
 
-mkdir 'po';
+mkdir $po_dir;
 for my $lang (@ARGV) {
-    $extract->read_po("po/$lang.po") if -f "po/$lang.po";
+    my $file = File::Spec->catfile($po_dir, "$lang.po");
+    $extract->read_po($file) if -f $file;
 
     $extract->extract_file($_) for (
         File::Find::Rule->file()->name(qr/.*\.(?:pm|pl)/)->in('lib'),
@@ -43,5 +62,44 @@ for my $lang (@ARGV) {
     );
 
     $extract->compile(1);
-    $extract->write_po("po/$lang.po");
+    $extract->write_po($file);
 }
+__END__
+
+=encoding utf-8
+
+=head1 NAME
+
+amon2-xgettext.pl - .po file generater for Amon2 applications
+
+=head1 USAGE
+
+  $ amon2-xgettext.pl en ja zh-tw zh-cn fr
+  $ ls ./po/
+  en.po ja.po zh-tw.po zh-cn.po fr.po
+
+  $ amon2-xgettext.pl --po-dir=translate en ja zh-tw zh-cn fr
+  $ ls ./translate/
+  en.po ja.po zh-tw.po zh-cn.po fr.po
+
+  $ amon2-xgettext.pl --help
+  $ amon2-xgettext.pl --version
+
+=head1 AUTHOR
+
+Kazuhiro Osawa E<lt>yappo {at} shibuya {dot} plE<gt>
+
+=head1 COPYRIGHT
+
+Copyright 2013- Kazuhiro Osawa
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+L<Amon2::Plugin::L10N>
+
+=cut
