@@ -63,6 +63,17 @@ Implementation L10N for your App
           },
       });
 
+  you can customize the po files name
+      __PACKAGE__->load_plugins('L10N' => {
+          accept_langs         => [qw/ zh-tw zh-cn zh /],
+          po_file_langs        => [qw/ zh-tw zh-cn /],    # zh.po is not exists file
+          after_detection_hook => sub {
+              my($c, $lang) = shift;
+              return 'zh-cn' if $lang eq 'zh'; # use zh-cn.po file
+              return $lang;
+          },
+      });
+
   for your CLI
       __PACKAGE__->load_plugins('L10N' => {
           default_lang          => 'ja',
@@ -107,7 +118,7 @@ Implementation L10N for your App
 
 Translation Step
   installing dependent module of amon2-xgettext.pl
-      $ cpanm --width-suggests Amon2::Plugin::L10N
+      $ cpanm --with-suggests Amon2::Plugin::L10N
 
     dependnt module list in the cpanfile file.
 
@@ -119,6 +130,13 @@ Translation Step
   edit .po files
       $ vim po/ja.po
       $ vim po/zh-tw.po
+
+Add Amon2 Context Method
+  $c->l10n_language_detection
+    Language that is detected will return.
+
+  $c->loc($message), $c->loc('foo %1 .. %2 ...', @args);
+    It will return the text in the appropriate language.
 
 AUTHOR
     Kazuhiro Osawa <yappo {at} shibuya {dot} pl>

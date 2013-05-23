@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use 5.008_005;
-our $VERSION = 'v0.1.3';
+our $VERSION = 'v0.1.4';
 
 use File::Spec;
 use HTTP::AcceptLanguage;
@@ -22,6 +22,9 @@ sub init {
     my $accept_langs = $conf->{accept_langs} || ['en'];
     die 'accept_langs is not array reference'
         unless ref($accept_langs) eq 'ARRAY';
+    my $po_file_langs = $conf->{po_file_langs} || $accept_langs;
+    die 'po_file_langs is not array reference'
+        unless ref($po_file_langs) eq 'ARRAY';
 
     $conf->{po_dir}          ||= 'po';
     $conf->{lexicon_options} ||= {};
@@ -29,7 +32,7 @@ sub init {
     my $l10n_class = $conf->{l10n_class};
     unless ($l10n_class) {
         $l10n_class = join '::', $c, 'L10N';
-        $class->generate_l10n_class($c, $accept_langs, $default_lang, $conf->{po_dir}, $conf->{lexicon_options});
+        $class->generate_l10n_class($c, $po_file_langs, $default_lang, $conf->{po_dir}, $conf->{lexicon_options});
     }
 
     Amon2::Util::add_method($c, l10n_language_detection => sub {
@@ -52,24 +55,20 @@ sub init {
     });
 
     my %l10n;
-    for my $lang (@{ $accept_langs }) {
+    for my $lang (@{ $po_file_langs }) {
         $l10n{$lang} = $l10n_class->get_handle($lang);
     }
     my $default_l10n = $default_lang ? $l10n{$default_lang} : undef;
-    Amon2::Util::add_method($c, l10n => sub {
-        $l10n{$_[0]->l10n_language_detection} || $default_l10n;
-    });
-
     Amon2::Util::add_method($c, loc => sub {
         my $context = shift;
-        my $l10n = $context->l10n;
+        my $l10n = $l10n{$context->l10n_language_detection} || $default_l10n;
         return join ', ', @_ unless $l10n;
         return $l10n->maketext(@_);
     });
 }
 
 sub generate_l10n_class {
-    my($class, $klass, $accept_langs, $default_lang, $po_dir, $lexicon_options) = @_;
+    my($class, $klass, $po_file_langs, $default_lang, $po_dir, $lexicon_options) = @_;
 
     # make package variable
     {
@@ -80,7 +79,7 @@ sub generate_l10n_class {
             _auto    => 1,
         );
 
-        for my $lang (@{ $accept_langs }) {
+        for my $lang (@{ $po_file_langs }) {
             if ($lang eq $default_lang) {
                 $opt{$lang} = [ 'Auto' ];
             } else {
@@ -180,6 +179,18 @@ Amon2::Plugin::L10N is L10N support plugin for Amon2.
       },
   });
 
+=head2 you can customize the po files name
+
+  __PACKAGE__->load_plugins('L10N' => {
+      accept_langs         => [qw/ zh-tw zh-cn zh /],
+      po_file_langs        => [qw/ zh-tw zh-cn /],    # zh.po is not exists file
+      after_detection_hook => sub {
+          my($c, $lang) = shift;
+          return 'zh-cn' if $lang eq 'zh'; # use zh-cn.po file
+          return $lang;
+      },
+  });
+
 =head2 for your CLI
 
   __PACKAGE__->load_plugins('L10N' => {
@@ -229,7 +240,7 @@ Amon2::Plugin::L10N is L10N support plugin for Amon2.
 
 =head2 installing dependent module of amon2-xgettext.pl
 
-  $ cpanm --width-suggests Amon2::Plugin::L10N
+  $ cpanm --with-suggests Amon2::Plugin::L10N
 
 dependnt module list in the L<cpanfile> file.
 
@@ -244,6 +255,16 @@ dependnt module list in the L<cpanfile> file.
 
   $ vim po/ja.po
   $ vim po/zh-tw.po
+
+=head1 Add Amon2 Context Method
+
+=head2 $c->l10n_language_detection
+
+Language that is detected will return.
+
+=head2 $c->loc($message), $c->loc('foo %1 .. %2 ...', @args);
+
+It will return the text in the appropriate language.
 
 =head1 AUTHOR
 

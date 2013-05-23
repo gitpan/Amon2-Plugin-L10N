@@ -16,6 +16,7 @@ t/03_after_hook.t
 t/04_default_lang.t
 t/05_l10n_class.t
 t/06_lexicon_options.t
+t/07_po_file_langs.t
 t/po/en.po
 t/po/ja.po
 t/po/th.po
